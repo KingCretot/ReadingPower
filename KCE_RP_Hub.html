@@ -202,8 +202,8 @@ function showCert(uNum){
 function closeCert(){ document.getElementById('overlay').classList.remove('on'); }
 function printCert(){ window.print(); }
 function resetProgress(){
-  if(confirm('Reset ALL progress on this device? This clears passed lessons and badges for the current reader.')){
-    localStorage.removeItem('kce_rf_pass'); localStorage.removeItem('kce_rf_badges');
+  if(confirm('Start over as a NEW reader on this device? This clears the saved name, passed lessons, and badges.')){
+    localStorage.removeItem('kce_rf_pass'); localStorage.removeItem('kce_rf_badges'); localStorage.removeItem('kce_rf_name');
     Object.keys(localStorage).forEach(function(k){ if(k.indexOf('kce_rf_attempts_')===0) localStorage.removeItem(k); });
     location.reload();
   }
