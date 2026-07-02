@@ -70,7 +70,7 @@ label.q{display:block;font-weight:800;font-size:1.22rem;color:var(--navy);margin
 <div class="screen" data-s="7"><div style="display:flex;justify-content:space-between;align-items:center"><h1 class="title" style="font-size:1.7rem;margin:0">📝 Metaphors Quiz</h1><span id="quheart" style="font-weight:900;color:var(--navy)">⭐ 0 / 0</span></div><p class="qcount" id="quizcount">Question 1 of 10</p><div class="card" id="quizbox"></div><div class="center"><button class="btn btn-grass btn-big" id="qnext" style="display:none" onclick="quizNext()">Next →</button></div></div>
 <div class="screen" data-s="8"><div id="resultbox"></div></div></div><footer class="legal">&copy; 2026 KingCretot Experience, LLC &middot; All rights reserved. Property of KingCretot Experience &mdash; not for copying, sharing, or redistribution.</footer><script>
 'use strict';
-var LID="U5L2", UNIT_CODE="U5", BADGE="Metaphor Maker", BTITLE="METAPHOR MAKER", NEXTUP="Idioms", HUB='KCE_RP_Hub.html';
+var LID="U5L2", UNIT_CODE="U5", BADGE="Metaphor Maker", BTITLE="METAPHOR MAKER", NEXTUP="Idioms", PIN="4110", HUB='KCE_RP_Hub.html';
 var SECTIONS=7, QUIZ_INDEX=7, RESULT_INDEX=8;
 var cur=0;
 function rdMap(k){try{return JSON.parse(localStorage.getItem(k)||'{}');}catch(e){return {};}}
@@ -161,7 +161,7 @@ function finishQuiz(){var pct=Math.round(correct/SERVE*100);var attempts=getAtte
  else if(attempts>=3){sendLock(pct,attempts);
   box.innerHTML='<div class="card center lock" style="border:3px solid var(--red)"><div class="lockic">🔒</div><h1 class="title">Time to team up!</h1>'+
    '<div class="scorebig" style="color:var(--red)">'+pct+'%</div><p class="sub">You worked hard, '+esc(student||'reader')+'! This lesson is locked for now. <b>See your instructor</b> — they will practice with you and unlock it.</p>'+
-   '<p class="note">Your instructor has been notified automatically.</p></div>';}
+   '<p class="note">Your instructor has been notified automatically.</p>'+'<div style="margin-top:16px;padding-top:14px;border-top:1px solid #e8e0cf">'+'<p class="note" style="margin:0 0 8px"><b>🔑 Instructor unlock:</b> ask your instructor for the code, then type it here.</p>'+'<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'+'<input id="unlockPin" inputmode="numeric" maxlength="6" placeholder="Code" style="font-size:18px;padding:8px 12px;border:2px solid var(--navy);border-radius:10px;width:120px;text-align:center">'+'<button class="btn btn-navy" onclick="tryUnlock()">Unlock</button></div>'+'<div id="unlockMsg" style="margin-top:8px;font-weight:700"></div></div>'+'</div>';}
  else{var left=3-attempts;box.innerHTML='<div class="card center"><div class="big-emoji">💪</div><div class="scorebig">'+pct+'%</div>'+
    '<h1 class="title" style="margin-top:2px">So close!</h1><p class="sub">You need <b>90%</b> to unlock the next lesson. Try again — you get <b>new questions</b> each time! Attempts left: <b>'+left+'</b>.</p>'+
    '<button class="btn btn-pri btn-big" style="margin-top:10px" onclick="startQuiz()">🔁 Try Again (new questions)</button></div>';}}
@@ -170,6 +170,10 @@ function sendLock(pct,attempts){try{var FE="https://formspree.io/f/mjgqabob",TE=
  d.append('program','KCE-RP-G4-5');d.append('unit',UNIT_CODE);d.append('lesson',LID);d.append('student_name',student||'Student');
  d.append('score',pct+'%');d.append('attempts',attempts);d.append('status','LOCKED - needs instructor');d.append('tutor_email',TE);
  if(FE.indexOf('REPLACE_WITH')===-1){fetch(FE,{method:'POST',body:d,headers:{'Accept':'application/json'}}).catch(function(){});}}catch(e){}}
+
+function tryUnlock(){var el=document.getElementById('unlockPin');var v=(el&&el.value||'').trim();var m=document.getElementById('unlockMsg');
+ if(v===String(PIN)){localStorage.removeItem('kce_rf_attempts_'+LID);if(m){m.style.color='#2e7d32';m.textContent='Unlocked! Loading new questions…';}setTimeout(function(){startQuiz();},500);}
+ else{if(m){m.style.color='var(--red)';m.textContent='That code is not right. Ask your instructor.';}}}
 
 function confettiBurst(){var cs=['#E0AC3C','#1B2C5C','#9B2335','#6BBF59','#7CC6FF'];for(var i=0;i<40;i++){var d=document.createElement('div');var s=7+Math.random()*9;
  d.style.cssText='position:fixed;top:-12px;left:'+(Math.random()*100)+'vw;width:'+s+'px;height:'+s+'px;background:'+cs[i%cs.length]+';z-index:90;border-radius:3px;pointer-events:none';document.body.appendChild(d);
