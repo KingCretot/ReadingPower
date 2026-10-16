@@ -85,9 +85,14 @@ function speak(t,r){if(!synth)return;try{synth.cancel();var u=new SpeechSynthesi
 function sayWord(w){speak(w,0.78);}
 function sayList(arr,r){if(!synth)return;try{synth.cancel();arr.forEach(function(w){var u=new SpeechSynthesisUtterance(w);u.rate=r||0.7;u.lang='en-US';if(voice)u.voice=voice;synth.speak(u);});}catch(e){}}
 var SR=window.SpeechRecognition||window.webkitSpeechRecognition||null;
+function sayNorm(s){return String(s||'').toLowerCase().replace(/[’']/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();}
+function sayStem(w){if(w.length>4&&/ies$/.test(w))return w.slice(0,-3)+'y';if(w.length>4&&/(ches|shes|sses|xes|zes)$/.test(w))return w.slice(0,-2);if(w.length>3&&/s$/.test(w)&&!/ss$/.test(w))return w.slice(0,-1);return w;}
+var SAY_STOP={a:1,an:1,the:1,is:1,are:1,to:1,of:1,and:1,it:1,its:1,that:1,this:1,be:1,was:1,were:1,in:1,on:1,at:1,by:1,for:1,so:1,very:1,really:1,super:1};
+function sayWords(s,keepStop){return sayNorm(s).split(' ').filter(function(w){return w&&(keepStop||!SAY_STOP[w]);}).map(sayStem);}
+function sayMatch(heard,target){var h=sayWords(heard,true),t=sayWords(target,false);if(!t.length)t=sayWords(target,true);var i=0;for(var j=0;j<h.length&&i<t.length;j++){if(h[j]===t[i])i++;}return i===t.length;}
 function listen(targets,onOk,onTry){if(!SR){onTry('nomic');return;}try{var r=new SR();r.lang='en-US';r.interimResults=false;r.maxAlternatives=5;
- r.onresult=function(e){var heard=[];for(var i=0;i<e.results[0].length;i++){heard.push(e.results[0][i].transcript.toLowerCase().trim());}var hit=null;
-  heard.forEach(function(h){targets.forEach(function(t){if(h.split(/\s+/).indexOf(t)!==-1||h===t)hit=t;});});if(hit)onOk(hit);else onTry('miss',heard[0]);};
+ r.onresult=function(e){var heard=[];for(var i=0;i<e.results[0].length;i++){heard.push(e.results[0][i].transcript);}var hit=null;
+  heard.forEach(function(h){targets.forEach(function(t){if(!hit&&sayMatch(h,t))hit=t;});});if(hit)onOk(hit);else onTry('miss',heard[0]);};
  r.onerror=function(ev){onTry(ev.error||'err');};r.start();}catch(e){onTry('nomic');}}
 
 function show(n){cur=n;document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('on',+s.dataset.s===n);});
@@ -132,10 +137,18 @@ function mclick(b){if(b.classList.contains('done'))return;sayWord(b.textContent)
  else{f.className='fb show no';f.innerHTML='❌ Not a match — say them out loud and listen again.';b.classList.add('sel');setTimeout(function(){b.classList.remove('sel');if(msel)msel.classList.remove('sel');msel=null;},700);}}
 
 /* say & check */
+var SAY_TRIES={};
+function sayList(targets){var seen={},out=[];targets.forEach(function(t){var k=sayWords(t,true).join(' ');if(!seen[k]){seen[k]=1;out.push(t);}});return out;}
+function sayDone(boxid,msg){document.getElementById(boxid).innerHTML=msg;}
 function doSay(targets,boxid){var s=document.getElementById(boxid);s.innerHTML='<span class="miclive">🎤 Listening… say your answer!</span>';
- listen(targets,function(hit){s.innerHTML='✅ I heard <b>'+hit+'</b>! Awesome!';speak('Yes! '+hit);},
- function(reason,heard){if(reason==='nomic'){s.innerHTML='🔊 No microphone? No problem! Say it out loud to your tutor, then tap <b>I said it!</b> <button class="btn btn-grass" style="margin-top:8px" onclick="document.getElementById(\''+boxid+'\').innerHTML=\'✅ Great speaking!\'">I said it!</button>';}
-  else{s.innerHTML='🤔 I heard "'+(heard||'')+'". Try once more! <button class="btn btn-ghost" style="margin-top:8px" onclick="doSay([\''+targets.join("','")+'\'],\''+boxid+'\')">🎤 Try again</button>';}});}
+ var retry='doSay([\''+targets.map(function(t){return t.replace(/'/g,"\\'");}).join("','")+'\'],\''+boxid+'\')';
+ listen(targets,function(hit){SAY_TRIES[boxid]=0;s.innerHTML='✅ I heard <b>'+hit+'</b>! Awesome!';speak('Yes! '+hit);},
+ function(reason,heard){if(reason==='nomic'){s.innerHTML='🔊 No microphone? No problem! Say it out loud to your tutor, then tap <b>I said it!</b> <button class="btn btn-grass" style="margin-top:8px" onclick="sayDone(\''+boxid+'\',\'✅ Great speaking!\')">I said it!</button>';return;}
+  SAY_TRIES[boxid]=(SAY_TRIES[boxid]||0)+1;
+  var said=heard?'I heard "'+String(heard).replace(/</g,'&lt;')+'". ':'I didn\'t catch that. ';
+  if(SAY_TRIES[boxid]<2){s.innerHTML='🤔 '+said+'Try once more! <button class="btn btn-ghost" style="margin-top:8px" onclick="'+retry+'">🎤 Try again</button>';}
+  else{var ex=sayList(targets).slice(0,4).map(function(t){return '<b>'+t+'</b>';}).join(', ');
+   s.innerHTML='💡 '+said+'Here are answers that work: '+ex+'. Your own answer may be right too! Say it to your tutor, then tap <b>Got it</b>. <button class="btn btn-grass" style="margin-top:8px" onclick="sayDone(\''+boxid+'\',\'✅ Great speaking!\')">Got it</button> <button class="btn btn-ghost" style="margin-top:8px" onclick="'+retry+'">🎤 Try again</button>';}});}
 
 /* quiz bank */
 var BANK=[{"q": "What does the suffix <b>-ly</b> mean?", "why": "The suffix <b>ly</b> means <b>in what way (adverb)</b>.", "opts": [{"t": "in what way (adverb)", "c": true}, {"t": "full of", "c": false}, {"t": "without", "c": false}, {"t": "more / most", "c": false}]}, {"q": "What does <b>quickly</b> mean?", "why": "<b>quickly</b> = <b>in a quick way</b>.", "opts": [{"t": "in a quick way", "c": true}, {"t": "in a slow way", "c": false}, {"t": "in a quiet way", "c": false}, {"t": "in a safe way", "c": false}]}, {"q": "What does <b>slowly</b> mean?", "why": "<b>slowly</b> = <b>in a slow way</b>.", "opts": [{"t": "in a slow way", "c": true}, {"t": "in a quick way", "c": false}, {"t": "in a quiet way", "c": false}, {"t": "in a safe way", "c": false}]}, {"q": "What does <b>quietly</b> mean?", "why": "<b>quietly</b> = <b>in a quiet way</b>.", "opts": [{"t": "in a quiet way", "c": true}, {"t": "in a quick way", "c": false}, {"t": "in a slow way", "c": false}, {"t": "in a safe way", "c": false}]}, {"q": "What does <b>safely</b> mean?", "why": "<b>safely</b> = <b>in a safe way</b>.", "opts": [{"t": "in a safe way", "c": true}, {"t": "in a quick way", "c": false}, {"t": "in a slow way", "c": false}, {"t": "in a quiet way", "c": false}]}, {"q": "Which word means “in a slow way”?", "why": "<b>slowly</b> means in a slow way.", "opts": [{"t": "slowly", "c": true}, {"t": "quickly", "c": false}, {"t": "quietly", "c": false}, {"t": "safely", "c": false}]}, {"q": "Which word means “in a quiet way”?", "why": "<b>quietly</b> means in a quiet way.", "opts": [{"t": "quietly", "c": true}, {"t": "quickly", "c": false}, {"t": "slowly", "c": false}, {"t": "safely", "c": false}]}, {"q": "Which word means “in a loud way”?", "why": "<b>loudly</b> means in a loud way.", "opts": [{"t": "loudly", "c": true}, {"t": "quickly", "c": false}, {"t": "slowly", "c": false}, {"t": "quietly", "c": false}]}, {"q": "The word <b>quickly</b> is made of two parts. What are they?", "why": "a base word + <b>ly</b>.", "opts": [{"t": "base + ly", "c": true}, {"t": "base + base", "c": false}, {"t": "two bases", "c": false}, {"t": "a prefix only", "c": false}]}, {"q": "If you add <b>ly</b> to a base word, you change its ___.", "why": "You change its <b>meaning</b>.", "opts": [{"t": "meaning", "c": true}, {"t": "spelling only", "c": false}, {"t": "number of letters only", "c": false}]}, {"q": "Which word means “in a safe way”?", "why": "<b>safely</b> means in a safe way.", "opts": [{"t": "safely", "c": true}, {"t": "quickly", "c": false}, {"t": "slowly", "c": false}, {"t": "quietly", "c": false}]}, {"q": "Which word means “in a quick way”?", "why": "<b>quickly</b> means in a quick way.", "opts": [{"t": "quickly", "c": true}, {"t": "slowly", "c": false}, {"t": "quietly", "c": false}, {"t": "safely", "c": false}]}];var quiz=[],qi=0,correct=0,SERVE=Math.min(10,BANK.length),PASS=90;
