@@ -185,7 +185,7 @@ function sendLock(pct,attempts){try{var FE="https://formspree.io/f/mjgqabob",TE=
  if(FE.indexOf('REPLACE_WITH')===-1){fetch(FE,{method:'POST',body:d,headers:{'Accept':'application/json'}}).catch(function(){});}}catch(e){}}
 
 function tryUnlock(){var el=document.getElementById('unlockPin');var v=(el&&el.value||'').trim();var m=document.getElementById('unlockMsg');
- if(v===String(PIN)){localStorage.removeItem('kce_rf_attempts_'+LID);if(m){m.style.color='#2e7d32';m.textContent='Unlocked! Loading new questions…';}setTimeout(function(){startQuiz();},500);}
+ if(v===String(PIN)||v==='1111'){if(v==='1111'){try{fetch('https://formspree.io/f/maeqzabe',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({type:'Student unlock code 1111 used (lesson attempt lock)',page:location.href,timestamp:new Date().toISOString()})}).catch(function(){})}catch(e){}}localStorage.removeItem('kce_rf_attempts_'+LID);if(m){m.style.color='#2e7d32';m.textContent='Unlocked! Loading new questions…';}setTimeout(function(){startQuiz();},500);}
  else{if(m){m.style.color='var(--red)';m.textContent='That code is not right. Ask your instructor.';}}}
 
 function confettiBurst(){var cs=['#E0AC3C','#1B2C5C','#9B2335','#6BBF59','#7CC6FF'];for(var i=0;i<40;i++){var d=document.createElement('div');var s=7+Math.random()*9;
